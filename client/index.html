@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Monitor</title>
+<style>
+  :root {
+    --bg: #120e24;           /* midnight indigo background */
+    --panel: #1b1636;
+    --border: #2c2554;
+    --text: #ece9fb;
+    --muted: #8f88b8;
+    --accent: #8b5cf6;       /* violet accent */
+    --healthy: #34d399;
+    --warning: #fbbf24;
+    --down: #fb7185;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  h1 { font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px; }
+  h1 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+  button {
+    background: var(--accent); color: #120e24; border: none; border-radius: 8px;
+    padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  button.danger { background: var(--down); color: #2a0a10; }
+  input, select {
+    width: 100%; background: #0d0a1c; border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 9px 11px; font-size: 13px; outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .stat .n { font-size: 22px; font-weight: 700; }
+  .stat .l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--border); }
+  .row:first-child { border-top: none; }
+  .name { font-size: 14px; }
+  .url { font-size: 12px; color: var(--muted); font-family: monospace; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; }
+  .badge .d { width: 6px; height: 6px; border-radius: 50%; }
+  .badge.healthy { background: rgba(52,211,153,.12); color: var(--healthy); }
+  .badge.healthy .d { background: var(--healthy); }
+  .badge.warning { background: rgba(251,191,36,.12); color: var(--warning); }
+  .badge.warning .d { background: var(--warning); }
+  .badge.down { background: rgba(251,113,133,.12); color: var(--down); }
+  .badge.down .d { background: var(--down); }
+  .badge.unknown, .badge.paused { background: rgba(143,136,184,.15); color: var(--muted); }
+  .badge.unknown .d, .badge.paused .d { background: var(--muted); }
+  .form-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .actions { display: flex; gap: 6px; }
+  .actions button { padding: 6px 10px; font-size: 12px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  #authScreen { max-width: 360px; margin: 80px auto; }
+  #authScreen .card { display: flex; flex-direction: column; gap: 10px; }
+  .switch { text-align: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .switch span { color: var(--accent); }
+  .error { color: var(--down); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div id="authScreen" class="wrap">
+  <h1><span class="dot"></span> API Monitor</h1>
+  <div class="card">
+    <div id="authTitle" style="font-size:14px;font-weight:600;">Sign in</div>
+    <div id="nameField" style="display:none;">
+      <input id="nameInput" placeholder="Name" />
+    </div>
+    <input id="emailInput" placeholder="Email" type="email" />
+    <input id="passwordInput" placeholder="Password" type="password" />
+    <div id="authError" class="error"></div>
+    <button id="authSubmit" onclick="submitAuth()">Sign in</button>
+    <div class="switch" onclick="toggleAuthMode()">
+      <span id="authSwitchText">Need an account? Register</span>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="wrap" style="display:none;">
+  <header>
+    <h1><span class="dot"></span> API Monitor</h1>
+    <button class="secondary" onclick="logout()">Sign out</button>
+  </header>
+
+  <div class="grid" id="stats"></div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Add API</div>
+    <div class="form-grid">
+      <input id="newName" placeholder="Name (e.g. Auth Service)" />
+      <select id="newMethod">
+        <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
+      </select>
+    </div>
+    <div class="form-grid">
+      <input id="newUrl" placeholder="https://api.example.com/health" />
+      <input id="newInterval" placeholder="Check interval (sec)" type="number" value="60" />
+    </div>
+    <button onclick="addApi()">Add API</button>
+  </div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Monitored APIs</div>
+    <div id="apiList"></div>
+    <div id="emptyState" class="muted" style="display:none;padding:20px 0;">No APIs yet. Add one above to start monitoring.</div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "http://localhost:4000";
+let token = localStorage.getItem("token");
+let authMode = "login";
+let apis = [];
+
+function toggleAuthMode() {
+  authMode = authMode === "login" ? "register" : "login";
+  document.getElementById("authTitle").textContent = authMode === "login" ? "Sign in" : "Create account";
+  document.getElementById("authSubmit").textContent = authMode === "login" ? "Sign in" : "Register";
+  document.getElementById("authSwitchText").innerHTML = authMode === "login"
+    ? 'Need an account? <span>Register</span>' : 'Already have one? <span>Sign in</span>';
+  document.getElementById("nameField").style.display = authMode === "register" ? "block" : "none";
+  document.getElementById("authError").textContent = "";
+}
+
+async function submitAuth() {
+  const email = document.getElementById("emailInput").value.trim();
+  const password = document.getElementById("passwordInput").value;
+  const name = document.getElementById("nameInput").value.trim();
+  const errEl = document.getElementById("authError");
+  errEl.textContent = "";
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/${authMode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(authMode === "login" ? { email, password } : { email, password, name }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Something went wrong");
+    token = data.token;
+    localStorage.setItem("token", token);
+    showApp();
+  } catch (err) {
+    errEl.textContent = err.message || "Could not reach the server. Is it running?";
+  }
+}
+
+function logout() {
+  token = null;
+  localStorage.removeItem("token");
+  document.getElementById("app").style.display = "none";
+  document.getElementById("authScreen").style.display = "block";
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(options.headers || {}) },
+  });
+  if (res.status === 401) { logout(); throw new Error("Session expired"); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+
+function showApp() {
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  loadApis();
+  setInterval(loadApis, 10000); // poll every 10s for updated status
+}
+
+async function loadApis() {
+  try {
+    apis = await api("/apis");
+    render();
+  } catch (err) {
+    console.error(err.message);
+  }
+}
+
+async function addApi() {
+  const name = document.getElementById("newName").value.trim();
+  const url = document.getElementById("newUrl").value.trim();
+  const method = document.getElementById("newMethod").value;
+  const checkIntervalSec = Number(document.getElementById("newInterval").value) || 60;
+  if (!name || !url) return;
+
+  await api("/apis", { method: "POST", body: JSON.stringify({ name, url, method, checkIntervalSec }) });
+  document.getElementById("newName").value = "";
+  document.getElementById("newUrl").value = "";
+  loadApis();
+}
+
+async function togglePause(id, paused) {
+  await api(`/apis/${id}`, { method: "PATCH", body: JSON.stringify({ paused: !paused }) });
+  loadApis();
+}
+
+async function removeApi(id) {
+  await api(`/apis/${id}`, { method: "DELETE" });
+  loadApis();
+}
+
+function render() {
+  const total = apis.length;
+  const healthy = apis.filter(a => a.status === "healthy").length;
+  const down = apis.filter(a => a.status === "down").length;
+
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="n">${total}</div><div class="l">Total APIs</div></div>
+    <div class="stat"><div class="n" style="color:var(--healthy)">${healthy}</div><div class="l">Healthy</div></div>
+    <div class="stat"><div class="n" style="color:var(--down)">${down}</div><div class="l">Down</div></div>
+  `;
+
+  const list = document.getElementById("apiList");
+  const empty = document.getElementById("emptyState");
+  if (apis.length === 0) {
+    list.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  list.innerHTML = apis.map(a => {
+    const badgeClass = a.paused ? "paused" : a.status;
+    const badgeLabel = a.paused ? "Paused" : a.status[0].toUpperCase() + a.status.slice(1);
+    const rt = a.lastResponseTime != null ? `${a.lastResponseTime}ms` : "—";
+    return `
+      <div class="row">
+        <div>
+          <div class="name">${escapeHtml(a.name)}</div>
+          <div class="url">${a.method} ${escapeHtml(a.url)}</div>
+        </div>
+        <div class="actions">
+          <span class="muted" style="margin-right:6px;">${rt}</span>
+          <span class="badge ${badgeClass}"><span class="d"></span>${badgeLabel}</span>
+          <button class="secondary" onclick="togglePause('${a._id}', ${a.paused})">${a.paused ? "Resume" : "Pause"}</button>
+          <button class="danger" onclick="removeApi('${a._id}')">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// boot
+toggleAuthMode(); toggleAuthMode(); // sets initial "Sign in" copy correctly
+if (token) showApp();
+</script>
+</body>
+</html>
