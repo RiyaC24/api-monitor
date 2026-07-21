@@ -8,8 +8,23 @@ A minimal, working full-stack API monitoring app:
   and polls for updated status every 10 seconds.
 
 Scope is intentionally basic: register/login, add/pause/resume/delete APIs, and see live
-health/response time. No teams, notifications, incidents, analytics, or Socket.IO — see the chat
+health/response time. No teams, notifications, incidents analytics, or Socket.IO — see the chat
 for what was cut and why.
+
+**Added on top of the basic version:**
+- Dashboard summary (total / healthy / down, current uptime %, average response time, a response-time bar chart)
+- Dark/light theme toggle (persisted in the browser)
+- Bulk add — paste multiple `Name, URL` lines at once
+- Categories and tags per API, with filter chips and a search bar
+- Custom headers per API (so you can monitor endpoints that need an API key/auth token —
+  set this under "Advanced" when adding an API, e.g. `{"Authorization": "Bearer xyz"}`)
+- Export an API's check history as CSV
+- Mobile-responsive layout
+
+Note: "Uptime (current)" on the dashboard is a simple snapshot — the share of currently-monitored
+APIs that are healthy or warning right now — not a historical percentage calculated from check
+history. A true historical uptime % would need to aggregate the `Check` collection over time,
+which isn't built yet.
 
 ## Requirements
 

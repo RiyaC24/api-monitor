@@ -10,6 +10,7 @@ async function checkOne(api) {
       url: api.url,
       method: api.method,
       timeout: api.timeoutMs,
+      headers: api.headers && typeof api.headers === "object" ? api.headers : {},
       validateStatus: () => true, // we classify the status ourselves
     });
     const responseTime = Date.now() - start;

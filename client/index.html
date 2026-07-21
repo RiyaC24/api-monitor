@@ -6,15 +6,23 @@
 <title>API Monitor</title>
 <style>
   :root {
-    --bg: #120e24;           /* midnight indigo background */
+    --bg: #120e24;
     --panel: #1b1636;
     --border: #2c2554;
     --text: #ece9fb;
     --muted: #8f88b8;
-    --accent: #8b5cf6;       /* violet accent */
+    --accent: #8b5cf6;
     --healthy: #34d399;
     --warning: #fbbf24;
     --down: #fb7185;
+  }
+  body.light {
+    --bg: #f4f2fb;
+    --panel: #ffffff;
+    --border: #e2ddf5;
+    --text: #201a3a;
+    --muted: #6c6490;
+    --accent: #7c3aed;
   }
   * { box-sizing: border-box; }
   body {
@@ -22,32 +30,44 @@
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    transition: background .15s, color .15s;
   }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px; }
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
   h1 { font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px; }
   h1 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
   button {
-    background: var(--accent); color: #120e24; border: none; border-radius: 8px;
+    background: var(--accent); color: #fff; border: none; border-radius: 8px;
     padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
   }
   button.secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); }
   button.danger { background: var(--down); color: #2a0a10; }
-  input, select {
-    width: 100%; background: #0d0a1c; border: 1px solid var(--border); color: var(--text);
-    border-radius: 8px; padding: 9px 11px; font-size: 13px; outline: none;
+  button.icon { padding: 8px 10px; }
+  input, select, textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 9px 11px; font-size: 13px; outline: none; font-family: inherit;
   }
-  input:focus, select:focus { border-color: var(--accent); }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 14px; }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  textarea { resize: vertical; font-family: monospace; font-size: 12px; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
   .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .stat .n { font-size: 22px; font-weight: 700; }
-  .stat .l { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--border); }
+  .stat .n { font-size: 20px; font-weight: 700; }
+  .stat .l { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .bars { margin-top: 4px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+  .bar-label { width: 130px; flex-shrink: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { flex: 1; background: var(--bg); border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+  .bar-val { width: 55px; text-align: right; color: var(--muted); flex-shrink: 0; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
   .row:first-child { border-top: none; }
   .name { font-size: 14px; }
-  .url { font-size: 12px; color: var(--muted); font-family: monospace; }
-  .badge { font-size: 11px; padding: 3px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; }
+  .url { font-size: 12px; color: var(--muted); font-family: monospace; word-break: break-all; }
+  .meta { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+  .chip { font-size: 10px; padding: 2px 7px; border-radius: 999px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
   .badge .d { width: 6px; height: 6px; border-radius: 50%; }
   .badge.healthy { background: rgba(52,211,153,.12); color: var(--healthy); }
   .badge.healthy .d { background: var(--healthy); }
@@ -58,14 +78,28 @@
   .badge.unknown, .badge.paused { background: rgba(143,136,184,.15); color: var(--muted); }
   .badge.unknown .d, .badge.paused .d { background: var(--muted); }
   .form-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px; }
-  .actions { display: flex; gap: 6px; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .actions button { padding: 6px 10px; font-size: 12px; }
   .muted { color: var(--muted); font-size: 13px; }
-  #authScreen { max-width: 360px; margin: 80px auto; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab { padding: 6px 12px; font-size: 12px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); cursor: pointer; background: transparent; }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .filter-row input[type=text] { flex: 1; min-width: 180px; }
+  details summary { cursor: pointer; font-size: 12px; color: var(--muted); margin: 6px 0; }
+  #authScreen { max-width: 360px; margin: 60px auto; }
   #authScreen .card { display: flex; flex-direction: column; gap: 10px; }
   .switch { text-align: center; font-size: 13px; color: var(--muted); cursor: pointer; }
   .switch span { color: var(--accent); }
   .error { color: var(--down); font-size: 13px; }
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .row { flex-direction: column; align-items: flex-start; }
+    .actions { width: 100%; }
+    .bar-label { width: 90px; }
+    header { flex-direction: column; align-items: flex-start; }
+  }
 </style>
 </head>
 <body>
@@ -90,28 +124,64 @@
 <div id="app" class="wrap" style="display:none;">
   <header>
     <h1><span class="dot"></span> API Monitor</h1>
-    <button class="secondary" onclick="logout()">Sign out</button>
+    <div class="header-actions">
+      <button class="secondary icon" onclick="toggleTheme()" id="themeBtn">🌙</button>
+      <button class="secondary" onclick="logout()">Sign out</button>
+    </div>
   </header>
 
   <div class="grid" id="stats"></div>
 
   <div class="card">
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Add API</div>
-    <div class="form-grid">
-      <input id="newName" placeholder="Name (e.g. Auth Service)" />
-      <select id="newMethod">
-        <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
-      </select>
-    </div>
-    <div class="form-grid">
-      <input id="newUrl" placeholder="https://api.example.com/health" />
-      <input id="newInterval" placeholder="Check interval (sec)" type="number" value="60" />
-    </div>
-    <button onclick="addApi()">Add API</button>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Response time by API</p>
+    <div class="bars" id="bars"></div>
   </div>
 
   <div class="card">
-    <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Monitored APIs</div>
+    <div class="tabs">
+      <button class="tab active" id="tabSingle" onclick="setAddMode('single')">Add one</button>
+      <button class="tab" id="tabBulk" onclick="setAddMode('bulk')">Bulk add</button>
+    </div>
+
+    <div id="singleForm">
+      <div class="form-grid">
+        <input id="newName" placeholder="Name (e.g. Auth Service)" />
+        <select id="newMethod">
+          <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option>
+        </select>
+      </div>
+      <div class="form-grid">
+        <input id="newUrl" placeholder="https://api.example.com/health" />
+        <input id="newInterval" placeholder="Check interval (sec)" type="number" value="60" />
+      </div>
+      <div class="form-grid">
+        <input id="newCategory" placeholder="Category (e.g. Personal, Client Work)" />
+        <input id="newTags" placeholder="Tags, comma separated" />
+      </div>
+      <details>
+        <summary>Advanced: custom headers (for APIs that need an API key/token)</summary>
+        <textarea id="newHeaders" rows="3" placeholder='{"Authorization": "Bearer your_token"}'></textarea>
+      </details>
+      <div style="margin-top:10px;">
+        <button onclick="addApi()">Add API</button>
+      </div>
+    </div>
+
+    <div id="bulkForm" style="display:none;">
+      <p class="muted" style="margin:0 0 8px;">One per line: <code>Name, URL</code> — or just a URL and a name will be generated.</p>
+      <textarea id="bulkText" rows="6" placeholder="Auth Service, https://api.example.com/auth&#10;https://api.example.com/health&#10;Payments, https://api.example.com/payments"></textarea>
+      <div style="margin-top:10px;">
+        <button onclick="addBulk()">Add all</button>
+      </div>
+      <div id="bulkError" class="error" style="margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="filter-row">
+      <input type="text" id="searchInput" placeholder="Search by name, URL, or tag..." oninput="render()" />
+    </div>
+    <div class="tabs" id="categoryFilters"></div>
     <div id="apiList"></div>
     <div id="emptyState" class="muted" style="display:none;padding:20px 0;">No APIs yet. Add one above to start monitoring.</div>
   </div>
@@ -122,7 +192,23 @@ const API_BASE = "http://localhost:4000";
 let token = localStorage.getItem("token");
 let authMode = "login";
 let apis = [];
+let addMode = "single";
+let activeCategory = "all";
 
+// ---------- theme ----------
+function applyTheme(mode) {
+  document.body.classList.toggle("light", mode === "light");
+  const btn = document.getElementById("themeBtn");
+  if (btn) btn.textContent = mode === "light" ? "☀️" : "🌙";
+}
+function toggleTheme() {
+  const current = localStorage.getItem("theme") === "light" ? "dark" : "light";
+  localStorage.setItem("theme", current);
+  applyTheme(current);
+}
+applyTheme(localStorage.getItem("theme") || "dark");
+
+// ---------- auth ----------
 function toggleAuthMode() {
   authMode = authMode === "login" ? "register" : "login";
   document.getElementById("authTitle").textContent = authMode === "login" ? "Sign in" : "Create account";
@@ -178,7 +264,7 @@ function showApp() {
   document.getElementById("authScreen").style.display = "none";
   document.getElementById("app").style.display = "block";
   loadApis();
-  setInterval(loadApis, 10000); // poll every 10s for updated status
+  setInterval(loadApis, 10000);
 }
 
 async function loadApis() {
@@ -190,19 +276,68 @@ async function loadApis() {
   }
 }
 
+// ---------- add: single ----------
+function setAddMode(mode) {
+  addMode = mode;
+  document.getElementById("tabSingle").classList.toggle("active", mode === "single");
+  document.getElementById("tabBulk").classList.toggle("active", mode === "bulk");
+  document.getElementById("singleForm").style.display = mode === "single" ? "block" : "none";
+  document.getElementById("bulkForm").style.display = mode === "bulk" ? "block" : "none";
+}
+
 async function addApi() {
   const name = document.getElementById("newName").value.trim();
   const url = document.getElementById("newUrl").value.trim();
   const method = document.getElementById("newMethod").value;
   const checkIntervalSec = Number(document.getElementById("newInterval").value) || 60;
+  const category = document.getElementById("newCategory").value.trim();
+  const tags = document.getElementById("newTags").value.split(",").map(t => t.trim()).filter(Boolean);
+  const headersRaw = document.getElementById("newHeaders").value.trim();
   if (!name || !url) return;
 
-  await api("/apis", { method: "POST", body: JSON.stringify({ name, url, method, checkIntervalSec }) });
+  let headers = {};
+  if (headersRaw) {
+    try { headers = JSON.parse(headersRaw); }
+    catch { alert('Custom headers must be valid JSON, e.g. {"Authorization": "Bearer xyz"}'); return; }
+  }
+
+  await api("/apis", { method: "POST", body: JSON.stringify({ name, url, method, checkIntervalSec, category, tags, headers }) });
   document.getElementById("newName").value = "";
   document.getElementById("newUrl").value = "";
+  document.getElementById("newCategory").value = "";
+  document.getElementById("newTags").value = "";
+  document.getElementById("newHeaders").value = "";
   loadApis();
 }
 
+// ---------- add: bulk ----------
+async function addBulk() {
+  const raw = document.getElementById("bulkText").value.trim();
+  const errEl = document.getElementById("bulkError");
+  errEl.textContent = "";
+  if (!raw) return;
+
+  const items = raw.split("\n").map(line => line.trim()).filter(Boolean).map(line => {
+    const parts = line.split(",").map(p => p.trim());
+    if (parts.length >= 2) return { name: parts[0], url: parts.slice(1).join(",") };
+    try {
+      const u = new URL(parts[0]);
+      return { name: u.hostname, url: parts[0] };
+    } catch {
+      return { name: parts[0], url: parts[0] };
+    }
+  });
+
+  try {
+    await api("/apis/bulk", { method: "POST", body: JSON.stringify({ items }) });
+    document.getElementById("bulkText").value = "";
+    loadApis();
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+}
+
+// ---------- actions ----------
 async function togglePause(id, paused) {
   await api(`/apis/${id}`, { method: "PATCH", body: JSON.stringify({ paused: !paused }) });
   loadApis();
@@ -213,40 +348,111 @@ async function removeApi(id) {
   loadApis();
 }
 
+async function copyBadge(id, name) {
+  const markdown = `![${name} status](${API_BASE}/public/apis/${id}/badge.svg)`;
+  try {
+    await navigator.clipboard.writeText(markdown);
+    alert("Badge markdown copied to clipboard — paste it into your README.");
+  } catch {
+    prompt("Copy this markdown:", markdown);
+  }
+}
+
+async function exportChecks(id, name) {
+  const res = await fetch(`${API_BASE}/apis/${id}/checks/export.csv`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) { alert("Could not export history"); return; }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${name.replace(/[^a-z0-9]/gi, "_")}_checks.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- render ----------
 function render() {
   const total = apis.length;
   const healthy = apis.filter(a => a.status === "healthy").length;
+  const warning = apis.filter(a => a.status === "warning").length;
   const down = apis.filter(a => a.status === "down").length;
+  const withRt = apis.filter(a => a.lastResponseTime != null);
+  const avgRt = withRt.length ? Math.round(withRt.reduce((s, a) => s + a.lastResponseTime, 0) / withRt.length) : 0;
+  const checkedApis = apis.filter(a => a.status !== "unknown" && !a.paused);
+  const uptimePct = checkedApis.length ? Math.round(((healthy + warning) / checkedApis.length) * 1000) / 10 : 0;
 
   document.getElementById("stats").innerHTML = `
     <div class="stat"><div class="n">${total}</div><div class="l">Total APIs</div></div>
     <div class="stat"><div class="n" style="color:var(--healthy)">${healthy}</div><div class="l">Healthy</div></div>
     <div class="stat"><div class="n" style="color:var(--down)">${down}</div><div class="l">Down</div></div>
+    <div class="stat"><div class="n">${uptimePct}%</div><div class="l">Uptime (current)</div></div>
+    <div class="stat"><div class="n">${avgRt}ms</div><div class="l">Avg response</div></div>
   `;
+
+  const barsEl = document.getElementById("bars");
+  const withTimes = apis.filter(a => a.lastResponseTime != null).sort((a,b) => b.lastResponseTime - a.lastResponseTime).slice(0, 8);
+  if (withTimes.length === 0) {
+    barsEl.innerHTML = `<p class="muted" style="margin:0;">No response time data yet.</p>`;
+  } else {
+    const max = Math.max(...withTimes.map(a => a.lastResponseTime), 1);
+    barsEl.innerHTML = withTimes.map(a => `
+      <div class="bar-row">
+        <div class="bar-label">${escapeHtml(a.name)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4, (a.lastResponseTime / max) * 100)}%"></div></div>
+        <div class="bar-val">${a.lastResponseTime}ms</div>
+      </div>
+    `).join("");
+  }
+
+  const categories = [...new Set(apis.map(a => a.category).filter(Boolean))];
+  const catFiltersEl = document.getElementById("categoryFilters");
+  catFiltersEl.innerHTML = ["all", ...categories].map(c => `
+    <button class="tab ${activeCategory === c ? "active" : ""}" onclick="setCategory('${c.replace(/'/g, "\\'")}')">${c === "all" ? "All" : escapeHtml(c)}</button>
+  `).join("");
+
+  const q = (document.getElementById("searchInput")?.value || "").toLowerCase();
+  const filtered = apis.filter(a => {
+    const matchesCategory = activeCategory === "all" || a.category === activeCategory;
+    const haystack = `${a.name} ${a.url} ${(a.tags || []).join(" ")}`.toLowerCase();
+    const matchesSearch = !q || haystack.includes(q);
+    return matchesCategory && matchesSearch;
+  });
 
   const list = document.getElementById("apiList");
   const empty = document.getElementById("emptyState");
-  if (apis.length === 0) {
+  if (filtered.length === 0) {
     list.innerHTML = "";
     empty.style.display = "block";
+    empty.textContent = apis.length === 0 ? "No APIs yet. Add one above to start monitoring." : "No APIs match your search/filter.";
     return;
   }
   empty.style.display = "none";
 
-  list.innerHTML = apis.map(a => {
+  list.innerHTML = filtered.map(a => {
     const badgeClass = a.paused ? "paused" : a.status;
     const badgeLabel = a.paused ? "Paused" : a.status[0].toUpperCase() + a.status.slice(1);
     const rt = a.lastResponseTime != null ? `${a.lastResponseTime}ms` : "—";
+    const chips = [
+      a.category ? `<span class="chip">${escapeHtml(a.category)}</span>` : "",
+      ...(a.tags || []).map(t => `<span class="chip">#${escapeHtml(t)}</span>`),
+    ].join("");
     return `
       <div class="row">
         <div>
           <div class="name">${escapeHtml(a.name)}</div>
           <div class="url">${a.method} ${escapeHtml(a.url)}</div>
+          ${chips ? `<div class="meta">${chips}</div>` : ""}
         </div>
         <div class="actions">
-          <span class="muted" style="margin-right:6px;">${rt}</span>
+          <span class="muted" style="margin-right:2px;">${rt}</span>
           <span class="badge ${badgeClass}"><span class="d"></span>${badgeLabel}</span>
           <button class="secondary" onclick="togglePause('${a._id}', ${a.paused})">${a.paused ? "Resume" : "Pause"}</button>
+          <button class="secondary" onclick="copyBadge('${a._id}', '${a.name.replace(/'/g, "\\'")}')">Copy badge</button>
+          <button class="secondary" onclick="exportChecks('${a._id}', '${a.name.replace(/'/g, "\\'")}')">Export CSV</button>
           <button class="danger" onclick="removeApi('${a._id}')">Delete</button>
         </div>
       </div>
@@ -254,12 +460,17 @@ function render() {
   }).join("");
 }
 
+function setCategory(c) {
+  activeCategory = c;
+  render();
+}
+
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 // boot
-toggleAuthMode(); toggleAuthMode(); // sets initial "Sign in" copy correctly
+toggleAuthMode(); toggleAuthMode();
 if (token) showApp();
 </script>
 </body>

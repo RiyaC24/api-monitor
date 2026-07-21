@@ -5,6 +5,7 @@ import { connectDB } from "./config/db.js";
 import { startMonitor } from "./services/monitor.js";
 import authRoutes from "./routes/auth.js";
 import apiRoutes from "./routes/apis.js";
+import publicRoutes from "./routes/public.js";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 app.get("/health", (req, res) => res.json({ ok: true }));
 app.use("/auth", authRoutes);
 app.use("/apis", apiRoutes);
+app.use("/public", publicRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
