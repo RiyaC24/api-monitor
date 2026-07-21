@@ -2,6 +2,10 @@
 
 A minimal, working full-stack API monitoring app:
 
+## 🚀 Live Demo
+
+Frontend: https://effulgent-kleicha-4c7698.netlify.app/
+
 - **Backend**: Node.js + Express + MongoDB (Mongoose) + JWT auth + a real `node-cron` job that
   sends actual HTTP requests to each API you add and records the result.
 - **Frontend**: a single static `index.html` (no build step) that talks to the backend over REST
